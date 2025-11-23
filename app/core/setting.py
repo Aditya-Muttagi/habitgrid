@@ -1,9 +1,5 @@
 from pydantic import BaseModel
-from dotenv import load_dotenv
 import os
-
-# Load .env file
-load_dotenv()
 
 class Settings(BaseModel):
     app_name: str = os.getenv("APP_NAME", "HabitGrid")

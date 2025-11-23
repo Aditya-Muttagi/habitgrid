@@ -3,10 +3,11 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
+
 from app.models.user import User
-from app.core.security import hash_password, verify_password
+from app.core.Pwd_hash_verify import hash_password, verify_password
 from app.core.jwt import create_access_token
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.Pydantic_Val import UserRead
 from app.schemas.token import Token
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -20,8 +21,11 @@ class LoginRequest(BaseModel):
     password: str
 
 async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
+    db = AsyncSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):

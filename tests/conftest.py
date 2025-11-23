@@ -1,4 +1,3 @@
-# ensure project root is on sys.path so `import app` works reliably
 import sys
 from pathlib import Path
 
@@ -6,8 +5,6 @@ project_root = Path(__file__).resolve().parents[1]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import sys
-from pathlib import Path
 import asyncio
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -16,11 +13,6 @@ from app.db.session import Base
 from app.main import create_app
 from app.api.v1 import auth as auth_module  # used to override dependency
 from httpx import AsyncClient, ASGITransport
-
-# Make sure project root is importable (keeps imports stable across IDE/CI)
-project_root = Path(__file__).resolve().parents[1]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 def _run_sync(coro):
     """Helper to run an async coroutine from sync fixture context."""

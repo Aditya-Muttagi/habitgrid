@@ -1,4 +1,3 @@
-# tests/test_auth_register_login.py
 import pytest
 
 @pytest.mark.asyncio

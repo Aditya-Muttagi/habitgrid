@@ -6,7 +6,6 @@ sys.path.insert(0, ROOT)
 
 import asyncio
 from app.db.session import engine, Base
-from app.models import example
 
 async def run():
     async with engine.begin() as conn:
