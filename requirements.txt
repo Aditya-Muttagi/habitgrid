@@ -9,3 +9,4 @@ pytest-asyncio
 python-dotenv
 Jinja2
 passlib[bcrypt]
+email-validator
