@@ -1,53 +1,41 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel, EmailStr
+from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import AsyncSessionLocal
-
+from app.db.session import get_db
 from app.models.user import User
-from app.core.Pwd_hash_verify import hash_password, verify_password
-from app.core.jwt import create_access_token
-from app.schemas.Pydantic_Val import UserRead
-from app.schemas.token import Token
+from app.schemas.user import UserCreate, UserRead, UserLogin
+from app.core.security import hash_password, verify_password
+from app.core.jwt import create_access_token, decode_access_token
+from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+# /auth/register,/auth/login , to keep main.py clean
+router = APIRouter(prefix="/auth", tags=["auth"])
+db_dependency= Annotated[AsyncSession,Depends(get_db)]
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str
+#reponse_model mean return only the fields I told you to, UserRead return only Id and email and not pwd
+#payload is the JSON data sent by the client
+#User is the ORM Model represents the user table, Python Class -> SQL Table
+@router.post("/register", response_model=UserRead)
+async def register(payload: UserCreate, db: db_dependency):
 
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    existing = await db.execute(select(User).filter(User.email == payload.email))
+    if existing.scalars().first():
+        raise HTTPException(400, "Email already registered")
 
-async def get_db():
-    db = AsyncSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    q = await db.execute(select(User).filter_by(email=payload.email))
-    existing = q.scalars().first()
-    if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
-
-    user = User(
-        email=payload.email,
-        hashed_password=hash_password(payload.password),
-    )
+    user = User(email=payload.email, hashed_password=hash_password(payload.password))
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return UserRead.model_validate(user)
+    return user
 
-@router.post("/login", response_model=Token)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
-    q = await db.execute(select(User).filter_by(email=payload.email))
+
+@router.post("/login")
+async def login(payload: UserLogin, db: db_dependency):
+    q = await db.execute(select(User).filter(User.email == payload.email))
     user = q.scalars().first()
+
     if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    token = create_access_token({"sub": str(user.id), "email": user.email})
-    return Token(access_token=token)
+        raise HTTPException(401, "Invalid credentials")
+
+    token = create_access_token({"sub": str(user.id)})
+    return {"access_token": token, "token_type": "bearer"}
