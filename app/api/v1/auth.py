@@ -5,7 +5,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserLogin
 from app.core.security import hash_password, verify_password
-from app.core.jwt import create_access_token, decode_access_token
+from app.core.jwt import create_access_token
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # /auth/register,/auth/login , to keep main.py clean
