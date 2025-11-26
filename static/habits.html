@@ -38,7 +38,7 @@
         <form id="createForm">
           <div class="modal-header">
             <h5 class="modal-title">Create Habit</h5>
-            <button type="button" class="btn-close" id="closeCreateBtn"></button>
+            <button type="button" class="btn-close" id="closeCreateBtn" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
@@ -81,7 +81,7 @@
     const closeCreateBtn = document.getElementById('closeCreateBtn');
     const cancelCreateBtn = document.getElementById('cancelCreateBtn');
 
-    // basic bootstrap-style modal helper (no dependency)
+    // basic modal helper (no Bootstrap JS required)
     function showModal() {
       createModal.style.display = 'block';
       createModal.classList.add('show');
@@ -104,39 +104,45 @@
     refreshBtn.addEventListener('click', loadHabits);
 
     createForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      createSubmit.disabled = true;
-      try {
-        const title = habitTitle.value.trim();
-        const description = habitDesc.value.trim();
-        if (!title) throw new Error('Title required');
-        await apiRequest('/habits', 'POST', { title, description }, getToken());
-        showSuccess('Habit created');
-        hideModal();
-        await loadHabits();
-      } catch (err) {
-        showError(err?.message || JSON.stringify(err));
-      } finally {
-        createSubmit.disabled = false;
-      }
+        e.preventDefault();
+        createSubmit.disabled = true;
+        try {
+            const title = habitTitle.value.trim();
+            const description = habitDesc.value.trim();
+            if (!title) throw new Error('Title required');
+
+            // POST to the backend-created route (trailing slash required by backend)
+            await apiRequest('/habits/', 'POST', { title, description }, getToken());
+
+            showSuccess('Habit created');
+            hideModal();
+            await loadHabits();
+        } catch (err) {
+            showError(err?.message || JSON.stringify(err));
+        } finally {
+            createSubmit.disabled = false;
+        }
     });
 
+
     async function loadHabits() {
-      alertEl.classList.add('d-none');
-      habitsList.innerHTML = '<div class="col-12 text-center text-muted py-4">Loading…</div>';
-      try {
-        const data = await apiRequest('/habits', 'GET', null, getToken());
-        renderHabits(data || []);
-      } catch (err) {
-        if ((err && err.detail === 'Could not validate credentials') || err?.message === 'Unauthorized') {
-          clearToken();
-          window.location.href = 'login.html';
-          return;
+        alertEl.classList.add('d-none');
+        habitsList.innerHTML = '<div class="col-12 text-center text-muted py-4">Loading…</div>';
+        try {
+            // GET today's habits (backend exposes /habits/today)
+            const data = await apiRequest('/habits/today', 'GET', null, getToken());
+            renderHabits(data || []);
+        } catch (err) {
+            if ((err && err.detail === 'Could not validate credentials') || err?.message === 'Unauthorized') {
+             clearToken();
+             window.location.href = 'login.html';
+             return;
+            }
+            showError(err?.message || JSON.stringify(err));
+            habitsList.innerHTML = '';
         }
-        showError(err?.message || JSON.stringify(err));
-        habitsList.innerHTML = '';
-      }
     }
+
 
     function renderHabits(items) {
       if (!Array.isArray(items) || items.length === 0) {
@@ -161,28 +167,13 @@
         const footer = document.createElement('div');
         footer.className = 'mt-auto d-flex justify-content-between align-items-center';
 
-        // toggle button (mark done)
+        // toggle button (mark done) — backend expects POST /habits/{id}/today
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'btn btn-sm btn-outline-success';
         toggleBtn.textContent = h.done_today ? 'Done today ✓' : 'Mark done';
         toggleBtn.onclick = async () => {
           try {
-            await apiRequest(`/habits/${h.id}/toggle`, 'POST', null, getToken());
-            await loadHabits();
-          } catch (err) {
-            showError(err?.message || JSON.stringify(err));
-          }
-        };
-
-        // delete button
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn btn-sm btn-outline-danger';
-        delBtn.textContent = 'Delete';
-        delBtn.onclick = async () => {
-          if (!confirm('Delete this habit?')) return;
-          try {
-            await apiRequest(`/habits/${h.id}`, 'DELETE', null, getToken());
-            showSuccess('Deleted');
+            await apiRequest(`/habits/${h.id}/today`, 'POST', null, getToken());
             await loadHabits();
           } catch (err) {
             showError(err?.message || JSON.stringify(err));
@@ -190,7 +181,6 @@
         };
 
         footer.appendChild(toggleBtn);
-        footer.appendChild(delBtn);
 
         body.appendChild(title);
         body.appendChild(desc);

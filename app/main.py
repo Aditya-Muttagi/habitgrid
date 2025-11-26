@@ -9,7 +9,9 @@ from fastapi.staticfiles import StaticFiles
 #Starts the App
 app = FastAPI(title="HabitGrid")
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+#Add all these endpoints into main.py
+app.include_router(auth.router)
+app.include_router(habits.router)
 
 #Tells from which server to allow to modify the db,* means from anywhere
 app.add_middleware(
@@ -20,9 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#Add all these endpoints into main.py
-app.include_router(auth.router)
-app.include_router(habits.router)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 @app.get("/")
 async def test(request: Request):

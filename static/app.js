@@ -1,6 +1,6 @@
 /* Shared JS utilities and API client for HabitGrid static UI.
    Edit API_BASE to point where your FastAPI backend serves API endpoints. */
-const API_BASE = "/api"; // <-- change to e.g. "http://localhost:8000/api" if needed
+const API_BASE = ""; // <-- change to e.g. "http://localhost:8000/api" if needed
 
 // Lightweight wrapper for API calls
 async function apiRequest(path, method = 'GET', body = null, token = null) {
