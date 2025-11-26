@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HabitGrid — Welcome</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="#">HabitGrid</a>
+    <div>
+      <a href="login.html" class="btn btn-outline-primary me-2">Login</a>
+      <a href="register.html" class="btn btn-primary">Register</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+      <h1 class="display-5">Welcome to HabitGrid</h1>
+      <p class="lead text-muted">Simple habit tracking. Create daily habits, mark them done, and see your progress.</p>
+
+      <div class="d-flex justify-content-center gap-3 mt-4">
+        <a href="register.html" class="btn btn-lg btn-primary">Create an account</a>
+        <a href="login.html" class="btn btn-lg btn-outline-secondary">Login</a>
+      </div>
+
+      <hr class="my-5">
+
+      <h5 class="text-muted">Quick start</h5>
+      <ol class="text-start mx-auto" style="max-width:650px">
+        <li>Register an account or login.</li>
+        <li>Open the Habits page to add & manage habits.</li>
+        <li>If your API runs on another host, update <code>API_BASE</code> in <code>app.js</code>.</li>
+      </ol>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

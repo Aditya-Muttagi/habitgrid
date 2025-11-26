@@ -1,0 +1,9 @@
+/* Minimal local styles */
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.navbar-brand { letter-spacing: 0.2px; }
+.bg-light { background-color: #f8f9fa !important; }
+
+/* Modal shim (very small, since we avoided Bootstrap JS). Not production-ready — use Bootstrap modal if you include bootstrap bundle) */
+.modal { display: none; position: fixed; inset: 0; z-index: 1050; overflow: auto; background: rgba(0,0,0,0.4); }
+.modal .modal-dialog { margin: 6rem auto; }
+.modal.show { display: block; }

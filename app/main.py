@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 #Starts the App
 app = FastAPI(title="HabitGrid")
 
-app.mount('/static', StaticFiles(directory='app/static'), name='static')
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 #Tells from which server to allow to modify the db,* means from anywhere
 app.add_middleware(
@@ -26,4 +26,4 @@ app.include_router(habits.router)
 
 @app.get("/")
 async def test(request: Request):
-    return templates.TemplateResponse("home.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request})
