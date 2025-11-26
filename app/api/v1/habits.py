@@ -5,12 +5,21 @@ from app.db.session import get_db
 from app.models.habit import Habit, HabitEntry
 from app.schemas.habit import HabitCreate, HabitEntryUpdate
 from app.core.jwt import decode_access_token
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError
 
 router = APIRouter(prefix="/habits", tags=["habits"])
 
-def get_current_user(token: str):
-    payload = decode_access_token(token)
-    return int(payload["sub"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = decode_access_token(token)
+        return int(payload["sub"])
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+
 
 @router.post("/")
 async def create_habit(

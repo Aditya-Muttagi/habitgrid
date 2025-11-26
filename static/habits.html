@@ -19,6 +19,7 @@
 </nav>
 
 <main class="container py-5">
+
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">My Habits</h2>
     <div>
@@ -31,7 +32,7 @@
 
   <div id="habitsList" class="row g-3"></div>
 
-  <!-- Create modal (Bootstrap simple modal) -->
+  <!-- Create Habit Modal -->
   <div class="modal" tabindex="-1" id="createModal">
     <div class="modal-dialog modal-md">
       <div class="modal-content">
@@ -41,14 +42,12 @@
             <button type="button" class="btn-close" id="closeCreateBtn" aria-label="Close"></button>
           </div>
           <div class="modal-body">
+
             <div class="mb-3">
-              <label class="form-label">Title</label>
-              <input id="habitTitle" required class="form-control" />
+              <label class="form-label">Name</label>
+              <input id="habitName" required class="form-control" />
             </div>
-            <div class="mb-3">
-              <label class="form-label">Description (optional)</label>
-              <textarea id="habitDesc" rows="3" class="form-control"></textarea>
-            </div>
+
           </div>
           <div class="modal-footer">
             <button id="createSubmit" class="btn btn-primary" type="submit">Create</button>
@@ -63,148 +62,199 @@
 
 <script src="app.js"></script>
 <script>
-  (function () {
-    requireAuth(); // redirects to login if no token
+(function () {
 
-    const alertEl = document.getElementById('alert');
-    const habitsList = document.getElementById('habitsList');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const openCreateBtn = document.getElementById('openCreateBtn');
+  requireAuth(); // redirect if token missing
 
-    // modal elements
-    const createModal = document.getElementById('createModal');
-    const createForm = document.getElementById('createForm');
-    const habitTitle = document.getElementById('habitTitle');
-    const habitDesc = document.getElementById('habitDesc');
-    const createSubmit = document.getElementById('createSubmit');
-    const closeCreateBtn = document.getElementById('closeCreateBtn');
-    const cancelCreateBtn = document.getElementById('cancelCreateBtn');
+  const alertEl = document.getElementById('alert');
+  const habitsList = document.getElementById('habitsList');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const openCreateBtn = document.getElementById('openCreateBtn');
 
-    // basic modal helper (no Bootstrap JS required)
-    function showModal() {
-      createModal.style.display = 'block';
-      createModal.classList.add('show');
+  // Modal elements
+  const createModal = document.getElementById('createModal');
+  const createForm = document.getElementById('createForm');
+  const habitName = document.getElementById('habitName');
+  const createSubmit = document.getElementById('createSubmit');
+  const closeCreateBtn = document.getElementById('closeCreateBtn');
+  const cancelCreateBtn = document.getElementById('cancelCreateBtn');
+
+  // Modal helpers (no Bootstrap JS)
+  function showModal() {
+    createModal.style.display = 'block';
+    createModal.classList.add('show');
+  }
+  function hideModal() {
+    createModal.style.display = 'none';
+    createModal.classList.remove('show');
+    createForm.reset();
+  }
+
+  openCreateBtn.addEventListener('click', showModal);
+  closeCreateBtn.addEventListener('click', hideModal);
+  cancelCreateBtn.addEventListener('click', hideModal);
+
+  logoutBtn.addEventListener('click', () => {
+    clearToken();
+    window.location.href = 'login.html';
+  });
+
+  refreshBtn.addEventListener('click', loadHabits);
+
+  // -------- CREATE HABIT --------
+  createForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    createSubmit.disabled = true;
+
+    try {
+      const name = habitName.value.trim();
+      if (!name) throw new Error("Name is required");
+
+      await apiRequest("/habits/", "POST", { name }, getToken());
+      showSuccess("Habit created");
+      hideModal();
+      await loadHabits();
+
+    } catch (err) {
+      showError(err.message || JSON.stringify(err));
+    } finally {
+      createSubmit.disabled = false;
     }
-    function hideModal() {
-      createModal.style.display = 'none';
-      createModal.classList.remove('show');
-      createForm.reset();
-    }
+  });
 
-    openCreateBtn.addEventListener('click', showModal);
-    closeCreateBtn.addEventListener('click', hideModal);
-    cancelCreateBtn.addEventListener('click', hideModal);
+  // -------- LOAD HABITS --------
+  async function loadHabits() {
+    alertEl.classList.add("d-none");
+    habitsList.innerHTML = '<div class="col-12 text-center text-muted py-4">Loading…</div>';
 
-    logoutBtn.addEventListener('click', () => {
-      clearToken();
-      window.location.href = 'login.html';
-    });
-
-    refreshBtn.addEventListener('click', loadHabits);
-
-    createForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        createSubmit.disabled = true;
-        try {
-            const title = habitTitle.value.trim();
-            const description = habitDesc.value.trim();
-            if (!title) throw new Error('Title required');
-
-            // POST to the backend-created route (trailing slash required by backend)
-            await apiRequest('/habits/', 'POST', { title, description }, getToken());
-
-            showSuccess('Habit created');
-            hideModal();
-            await loadHabits();
-        } catch (err) {
-            showError(err?.message || JSON.stringify(err));
-        } finally {
-            createSubmit.disabled = false;
-        }
-    });
-
-
-    async function loadHabits() {
-        alertEl.classList.add('d-none');
-        habitsList.innerHTML = '<div class="col-12 text-center text-muted py-4">Loading…</div>';
-        try {
-            // GET today's habits (backend exposes /habits/today)
-            const data = await apiRequest('/habits/today', 'GET', null, getToken());
-            renderHabits(data || []);
-        } catch (err) {
-            if ((err && err.detail === 'Could not validate credentials') || err?.message === 'Unauthorized') {
-             clearToken();
-             window.location.href = 'login.html';
-             return;
-            }
-            showError(err?.message || JSON.stringify(err));
-            habitsList.innerHTML = '';
-        }
-    }
-
-
-    function renderHabits(items) {
-      if (!Array.isArray(items) || items.length === 0) {
-        habitsList.innerHTML = '<div class="col-12 text-center text-muted py-4">No habits yet. Add one above.</div>';
+    try {
+      const data = await apiRequest("/habits/today", "GET", null, getToken());
+      renderHabits(data || []);
+    } catch (err) {
+      if (err?.detail === "Could not validate credentials" || err?.message === "Unauthorized") {
+        clearToken();
+        window.location.href = "login.html";
         return;
       }
-      habitsList.innerHTML = '';
-      items.forEach(h => {
-        // each habit card
-        const col = document.createElement('div');
-        col.className = 'col-md-6 col-lg-4';
-        const card = document.createElement('div');
-        card.className = 'card h-100 shadow-sm';
-        const body = document.createElement('div');
-        body.className = 'card-body d-flex flex-column';
-        const title = document.createElement('h5');
-        title.textContent = h.title;
-        title.className = 'card-title';
-        const desc = document.createElement('p');
-        desc.className = 'card-text text-muted';
-        desc.textContent = h.description || '';
-        const footer = document.createElement('div');
-        footer.className = 'mt-auto d-flex justify-content-between align-items-center';
+      showError(err.message || JSON.stringify(err));
+      habitsList.innerHTML = "";
+    }
+  }
 
-        // toggle button (mark done) — backend expects POST /habits/{id}/today
-        const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'btn btn-sm btn-outline-success';
-        toggleBtn.textContent = h.done_today ? 'Done today ✓' : 'Mark done';
-        toggleBtn.onclick = async () => {
-          try {
-            await apiRequest(`/habits/${h.id}/today`, 'POST', null, getToken());
-            await loadHabits();
-          } catch (err) {
-            showError(err?.message || JSON.stringify(err));
-          }
-        };
-
-        footer.appendChild(toggleBtn);
-
-        body.appendChild(title);
-        body.appendChild(desc);
-        body.appendChild(footer);
-        card.appendChild(body);
-        col.appendChild(card);
-        habitsList.appendChild(col);
-      });
+  // -------- RENDER HABIT CARDS (tolerant and diagnostic) --------
+  function renderHabits(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      habitsList.innerHTML =
+        '<div class="col-12 text-center text-muted py-4">No habits yet. Add one above.</div>';
+      return;
     }
 
-    function showError(msg) {
-      alertEl.textContent = msg;
-      alertEl.className = 'alert alert-danger';
-      alertEl.classList.remove('d-none');
-    }
-    function showSuccess(msg) {
-      alertEl.textContent = msg;
-      alertEl.className = 'alert alert-success';
-      alertEl.classList.remove('d-none');
-      setTimeout(() => alertEl.classList.add('d-none'), 2500);
-    }
+    habitsList.innerHTML = "";
 
-    loadHabits();
-  })();
+    items.forEach((h, index) => {
+      // tolerant id detection (habit_id originates from your API)
+      let habitId = h.habit_id ?? h.id ?? h._id ?? h.pk ?? null;
+
+      // tolerant done detection
+      let doneVal = (typeof h.done !== "undefined") ? h.done
+                  : (typeof h.done_today !== "undefined") ? h.done_today
+                  : (typeof h.is_done !== "undefined") ? h.is_done
+                  : false;
+
+      const col = document.createElement('div');
+      col.className = "col-md-6 col-lg-4";
+
+      const card = document.createElement('div');
+      card.className = "card h-100 shadow-sm";
+
+      // store detected id in DOM (useful fallback)
+      if (habitId !== null && habitId !== undefined) {
+        card.dataset.habitId = String(habitId);
+      } else {
+        card.dataset.habitIndex = String(index);
+      }
+
+      const body = document.createElement('div');
+      body.className = "card-body d-flex flex-column";
+
+      const title = document.createElement('h5');
+      // tolerant rendering: prefer name, fall back to title
+      title.textContent = (h.name ?? h.title ?? "Unnamed habit");
+      title.className = "card-title";
+
+      const footer = document.createElement('div');
+      footer.className = "mt-auto d-flex justify-content-between align-items-center";
+
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = "btn btn-sm btn-outline-success";
+      toggleBtn.textContent = doneVal ? "Done today ✓" : "Mark done";
+
+      toggleBtn.onclick = async () => {
+        // Prefer object id, fallback to data attribute
+        let idToUse = habitId ?? card.dataset.habitId ?? null;
+
+        if (idToUse === null || idToUse === undefined || idToUse === "undefined") {
+          // diagnostic: log full object for debugging
+          console.error("Habit object missing id — full object:", h);
+
+          // brief preview to the user and disable the toggle
+          const preview = (() => {
+            try {
+              return JSON.stringify(h, (k, v) => (typeof v === "object" && v !== null ? undefined : v), 0);
+            } catch (e) {
+              return String(h);
+            }
+          })();
+          showError("Habit ID missing — check console. Preview: " + String(preview).slice(0, 200));
+          toggleBtn.disabled = true;
+          return;
+        }
+
+        // coerce numeric ids when appropriate
+        const maybeNum = Number(idToUse);
+        if (!Number.isNaN(maybeNum) && String(maybeNum) === String(idToUse)) idToUse = maybeNum;
+
+        // toggle using detected 'done' semantics
+        const newDone = !doneVal;
+
+        toggleBtn.disabled = true;
+        try {
+          // send the boolean using key 'done' (matches your API)
+          await apiRequest(`/habits/${idToUse}/today`, "POST", { done: newDone }, getToken());
+          await loadHabits();
+        } catch (err) {
+          showError(err?.message || JSON.stringify(err));
+        } finally {
+          toggleBtn.disabled = false;
+        }
+      };
+
+      footer.appendChild(toggleBtn);
+      body.appendChild(title);
+      body.appendChild(footer);
+      card.appendChild(body);
+      col.appendChild(card);
+      habitsList.appendChild(col);
+    });
+  }
+
+  function showError(msg) {
+    alertEl.textContent = msg;
+    alertEl.className = "alert alert-danger";
+    alertEl.classList.remove("d-none");
+  }
+
+  function showSuccess(msg) {
+    alertEl.textContent = msg;
+    alertEl.className = "alert alert-success";
+    alertEl.classList.remove("d-none");
+    setTimeout(() => alertEl.classList.add("d-none"), 2500);
+  }
+
+  loadHabits();
+
+})();
 </script>
 </body>
 </html>

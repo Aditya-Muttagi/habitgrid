@@ -8,7 +8,7 @@ class Habit(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    name = Column(String(200), nullable=False)
+    name = Column(String(200), unique=True, nullable=False)
 
 class HabitEntry(Base):
     __tablename__ = "habit_entries"

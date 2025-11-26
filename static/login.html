@@ -46,35 +46,43 @@
 
         </div>
       </div>
-      <p class="text-muted mt-3 small">This page uses the backend endpoint <code>POST /auth/login</code> returning an <code>access_token</code>.</p>
+      <p class="text-muted mt-3 small">
+        This page uses the backend endpoint <code>POST /auth/login</code> returning an <code>access_token</code>.
+      </p>
     </div>
   </div>
 </main>
 
 <script src="app.js"></script>
 <script>
-  // Page-specific logic
   (function () {
-    protectIfAuthed(); // redirect to habits.html if token exists
+    protectIfAuthed(); // redirect to habits.html if session already exists
 
     const form = document.getElementById('loginForm');
     const alertEl = document.getElementById('alert');
+    const submitBtn = document.getElementById('submitBtn');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       alertEl.classList.add('d-none');
+
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
       try {
         setLoading(true);
+
+        // Login API call
         const data = await apiRequest('/auth/login', 'POST', { email, password });
+
         if (data && data.access_token) {
-          saveToken(data.access_token);
+          // FIXED HERE:
+          setToken(data.access_token);     // <-- correct helper
           window.location.href = 'habits.html';
         } else {
           showError('Invalid response from server.');
         }
+
       } catch (err) {
         showError(err?.message || JSON.stringify(err));
       } finally {
@@ -89,8 +97,8 @@
     }
 
     function setLoading(isLoading) {
-      document.getElementById('submitBtn').disabled = !!isLoading;
-      document.getElementById('submitBtn').textContent = isLoading ? 'Logging in...' : 'Login';
+      submitBtn.disabled = !!isLoading;
+      submitBtn.textContent = isLoading ? 'Logging in...' : 'Login';
     }
   })();
 </script>
