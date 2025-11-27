@@ -8,12 +8,12 @@ from app.core.security import hash_password, verify_password
 from app.core.jwt import create_access_token
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# /auth/register,/auth/login , to keep main.py clean
+# /auth/register, /auth/login, to keep main.py clean
 router = APIRouter(prefix="/auth", tags=["auth"])
 db_dependency= Annotated[AsyncSession,Depends(get_db)]
 
 #reponse_model mean return only the fields I told you to, UserRead return only Id and email and not pwd
-#payload is the JSON data sent by the client
+#payload is the data sent by the client
 #User is the ORM Model represents the user table, Python Class -> SQL Table
 @router.post("/register", response_model=UserRead)
 async def register(payload: UserCreate, db: db_dependency):
@@ -27,7 +27,6 @@ async def register(payload: UserCreate, db: db_dependency):
     await db.commit()
     await db.refresh(user)
     return user
-
 
 @router.post("/login")
 async def login(payload: UserLogin, db: db_dependency):

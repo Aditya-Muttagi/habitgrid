@@ -3,8 +3,6 @@ from sqlalchemy.orm import sessionmaker
 import os
 import ssl
 
-#DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:aditya1729@localhost/HabitGridDatabase")
-
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://neondb_owner:npg_OJtU71icGaAg@ep-jolly-truth-a1pr7crh-pooler.ap-southeast-1.aws.neon.tech/neondb")
 ssl_context = ssl.create_default_context()
 

@@ -1,9 +1,7 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import auth, habits
-from app.db.base import templates
-
 from fastapi.staticfiles import StaticFiles
 
 #Starts the App
@@ -13,7 +11,7 @@ app = FastAPI(title="HabitGrid")
 app.include_router(auth.router)
 app.include_router(habits.router)
 
-#Tells from which server to allow to modify the db,* means from anywhere
+#Tells from which external frontend or website are allowed to make request to the backend, * means from anywhere
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,8 +20,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#Makes all the HTML files available at the path /..
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-@app.get("/")
-async def test(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})

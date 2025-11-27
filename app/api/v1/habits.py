@@ -12,6 +12,7 @@ from jose import JWTError
 
 router = APIRouter(prefix="/habits", tags=["habits"])
 
+#Returns token if it has Bearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -20,7 +21,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return int(payload["sub"])
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
-
 
 @router.post("/")
 async def create_habit(
@@ -44,16 +44,11 @@ async def delete_habit(
     db: AsyncSession = Depends(get_db),
     token: int = Depends(get_current_user)
 ):
-    # Ensure the habit exists and belongs to current user
     res = await db.execute(select(Habit).where(Habit.id == habit_id, Habit.user_id == token))
     habit = res.scalars().first()
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 
-    # Remove habit entries first (optional but cleaner)
-    await db.execute(delete(HabitEntry).where(HabitEntry.habit_id == habit_id))
-
-    # Delete the habit record
     await db.delete(habit)
     await db.commit()
     return {"detail": "Habit deleted"}
