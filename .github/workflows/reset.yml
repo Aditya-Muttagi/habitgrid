@@ -14,7 +14,7 @@ jobs:
 
       - name: Run SQL to reset habits
         env:
-          DATABASE_URL: ${{ secrets.NEON_DB_URL }}
+          DATABASE_URL: ${{postgresql+asyncpg://neondb_owner:npg_OJtU71icGaAg@ep-jolly-truth-a1pr7crh-pooler.ap-southeast-1.aws.neon.tech/neondb }}
         run: |
           set -e
           echo "Running UPDATE habit_entries SET done = FALSE;"
