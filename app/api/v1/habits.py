@@ -26,9 +26,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 async def create_habit(
     payload: HabitCreate,
     db: AsyncSession = Depends(get_db),
-    token: str = Depends(get_current_user)
+    current_user: int = Depends(get_current_user)
 ):
-    habit = Habit(user_id=token, name=payload.name)
+    q = await db.execute(select(Habit).where(Habit.user_id == current_user, Habit.name == payload.name))
+    existing = q.scalars().first()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You already have a habit with this name.")
+    habit = Habit(user_id=current_user, name=payload.name)
     db.add(habit)
     await db.commit()
     await db.refresh(habit)
@@ -38,15 +42,21 @@ async def create_habit(
 async def delete_habit(
     habit_id: int,
     db: AsyncSession = Depends(get_db),
+    token: int = Depends(get_current_user)
 ):
-    result = await db.execute(select(HabitEntry).where(HabitEntry.habit_id == habit_id))
-    entry = result.scalars().first()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Habit entry not found")
+    # Ensure the habit exists and belongs to current user
+    res = await db.execute(select(Habit).where(Habit.id == habit_id, Habit.user_id == token))
+    habit = res.scalars().first()
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
 
-    await db.delete(entry)
+    # Remove habit entries first (optional but cleaner)
+    await db.execute(delete(HabitEntry).where(HabitEntry.habit_id == habit_id))
+
+    # Delete the habit record
+    await db.delete(habit)
     await db.commit()
-    return None
+    return {"detail": "Habit deleted"}
 
 @router.post("/{habit_id}/today")
 async def update_today(habit_id: int, payload: HabitEntryUpdate, db: AsyncSession = Depends(get_db)):
