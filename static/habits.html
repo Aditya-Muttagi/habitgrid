@@ -6,18 +6,11 @@
   <title>HabitGrid — My Habits</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* smooth color/paint transition for buttons */
-    .btn {
-      transition: background-color 0.35s ease, border-color 0.35s ease, color 0.25s ease, box-shadow 0.2s ease;
-      will-change: background-color, border-color, color;
-    }
-
+    .btn { transition: background-color 0.35s ease, border-color 0.35s ease, color 0.25s ease, box-shadow 0.2s ease; }
     .hidden { display:none; }
     .card { min-height:120px; }
     #createFormWrap { max-width:420px; margin-left:auto; margin-right:0; }
     button[disabled]{ opacity:0.6; pointer-events:none; }
-
-    /* slight press effect for nicer feel */
     .btn:active { transform: translateY(1px); }
   </style>
 </head>
@@ -62,7 +55,6 @@
 <script>
 (function () {
 
-  // ensure auth helpers exist in app.js: requireAuth, apiRequest, getToken, clearToken
   requireAuth();
 
   const alertEl = document.getElementById('alert');
@@ -77,7 +69,6 @@
   const createSubmit = document.getElementById('createSubmit');
   const cancelCreateBtn = document.getElementById('cancelCreateBtn');
 
-  /* helpers */
   function showAlert(msg, type='danger') {
     alertEl.textContent = msg;
     alertEl.className = 'alert alert-' + type + ' p-2';
@@ -127,7 +118,6 @@
       const data = await apiRequest('/habits/today', 'GET', null, getToken());
       renderHabits(data || []);
     } catch (err) {
-      // handle auth failure consistently with prior code
       if (err?.detail === 'Could not validate credentials' || err?.message === 'Unauthorized') {
         clearToken();
         window.location.href = 'login.html';
@@ -138,7 +128,7 @@
     }
   }
 
-  /* RENDER HABITS - tolerant & diagnostic (kept behavior) */
+  /* RENDER HABITS */
   function renderHabits(items) {
     if (!Array.isArray(items) || items.length === 0) {
       habitsList.innerHTML = '<div class="col-12 text-center text-muted py-4">No habits yet. Add one above.</div>';
@@ -146,73 +136,62 @@
     }
 
     habitsList.innerHTML = '';
+
     items.forEach((h, index) => {
-      const habitId = h.habit_id ?? h.id ?? h._id ?? h.pk ?? null;
-      const doneVal = (typeof h.done !== 'undefined') ? h.done
-                    : (typeof h.done_today !== 'undefined') ? h.done_today
-                    : (typeof h.is_done !== 'undefined') ? h.is_done
-                    : false;
+      const habitId = h.habit_id ?? h.id ?? null;
+      const doneVal = h.done ?? false;
 
       const col = document.createElement('div');
       col.className = 'col-md-6 col-lg-4';
 
       const card = document.createElement('div');
       card.className = 'card h-100 shadow-sm p-3 d-flex flex-column';
-      if (habitId !== null && habitId !== undefined) card.dataset.habitId = String(habitId);
-      else card.dataset.habitIndex = String(index);
+      card.dataset.habitId = habitId;
 
       const title = document.createElement('h5');
       title.className = 'mb-3';
-      title.textContent = (h.name ?? h.title ?? 'Unnamed habit');
+      title.textContent = h.name ?? 'Unnamed habit';
 
       const footer = document.createElement('div');
       footer.className = 'mt-auto d-flex justify-content-between align-items-center';
 
+      /* TOGGLE DONE BUTTON */
       const toggleBtn = document.createElement('button');
       toggleBtn.className = doneVal ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-success';
-      toggleBtn.textContent = doneVal ? 'Done today ✓' : 'Mark done';
+      toggleBtn.textContent = doneVal ? 'Done ✓' : 'Mark done';
 
       toggleBtn.onclick = async () => {
-        let idToUse = habitId ?? card.dataset.habitId ?? null;
-        if (idToUse === null || idToUse === undefined || idToUse === 'undefined') {
-          console.error('Habit object missing id — full object:', h);
-          showAlert('Habit ID missing — check console.', 'danger');
-          toggleBtn.disabled = true;
-          return;
-        }
-
-        const maybeNum = Number(idToUse);
-        if (!Number.isNaN(maybeNum) && String(maybeNum) === String(idToUse)) idToUse = maybeNum;
         const newDone = !doneVal;
-
-        // immediate UI update (smooth transition handled by CSS)
-        if (newDone) {
-          toggleBtn.classList.remove('btn-outline-success');
-          // ensure we remove any leftover success-outline classes
-          toggleBtn.classList.add('btn-success');
-          toggleBtn.textContent = 'Done today ✓';
-        } else {
-          toggleBtn.classList.remove('btn-success');
-          toggleBtn.classList.add('btn-outline-success');
-          toggleBtn.textContent = 'Mark done';
-        }
-
-        // briefly disable to prevent rapid double-clicks
         toggleBtn.disabled = true;
         try {
-          await apiRequest(`/habits/${idToUse}/today`, 'POST', { done: newDone }, getToken());
-          // re-load to get canonical state from server
+          await apiRequest(`/habits/${habitId}/today`, 'POST', { done: newDone }, getToken());
           await loadHabits();
         } catch (err) {
-          // on error, surface message and re-render list (to restore original state)
           showAlert(err?.message || JSON.stringify(err));
-          await loadHabits();
         } finally {
           toggleBtn.disabled = false;
         }
       };
 
+      /* DELETE BUTTON — one click, no confirmation */
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-sm btn-outline-danger';
+      deleteBtn.textContent = 'Delete';
+
+      deleteBtn.onclick = async () => {
+        deleteBtn.disabled = true;
+        try {
+          await apiRequest(`/habits/${habitId}`, 'DELETE', null, getToken());
+          await loadHabits();
+        } catch (err) {
+          showAlert(err?.message || JSON.stringify(err));
+          deleteBtn.disabled = false;
+        }
+      };
+
       footer.appendChild(toggleBtn);
+      footer.appendChild(deleteBtn);
+
       card.appendChild(title);
       card.appendChild(footer);
       col.appendChild(card);
@@ -220,7 +199,6 @@
     });
   }
 
-  /* initial load */
   loadHabits();
 
 })();

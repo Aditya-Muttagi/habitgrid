@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.session import get_db
@@ -32,6 +33,20 @@ async def create_habit(
     await db.commit()
     await db.refresh(habit)
     return habit
+
+@router.delete("/{habit_id}")
+async def delete_habit(
+    habit_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(HabitEntry).where(HabitEntry.habit_id == habit_id))
+    entry = result.scalars().first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Habit entry not found")
+
+    await db.delete(entry)
+    await db.commit()
+    return None
 
 @router.post("/{habit_id}/today")
 async def update_today(habit_id: int, payload: HabitEntryUpdate, db: AsyncSession = Depends(get_db)):
