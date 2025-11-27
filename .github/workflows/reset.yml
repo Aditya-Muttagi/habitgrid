@@ -1,0 +1,23 @@
+name: Reset Habits Daily (IST midnight)
+
+on:
+  schedule:
+    - cron: "30 18 * * *"   # runs daily at 00:00 IST (18:30 UTC)
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run SQL to reset habits
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          set -e
+          echo "Running UPDATE habit_entries SET done = FALSE;"
+          psql "$DATABASE_URL" <<'EOF'
+          UPDATE habit_entries SET done = FALSE;
+          EOF
