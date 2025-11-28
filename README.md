@@ -70,20 +70,20 @@ tests/
 
  - Install dependencies:
 
-pip install -r requirements.txt
+``` pip install -r requirements.txt ```
 
 
  - Start the server:
 
-uvicorn app.main:app --reload
+```uvicorn app.main:app --reload```
 
 
  - Open in browser:
 
-API docs: http://127.0.0.1:8000/docs
+```API docs: http://127.0.0.1:8000/docs```
 
-Frontend: http://127.0.0.1:8000/
+```Frontend: http://127.0.0.1:8000/```
 
  - Run Tests:
 
-pytest
+```pytest```
