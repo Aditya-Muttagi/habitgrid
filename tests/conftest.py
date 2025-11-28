@@ -1,4 +1,3 @@
-# tests/conftest.py
 import asyncio
 import os
 import tempfile
@@ -32,14 +31,8 @@ def event_loop():
     yield loop
     loop.close()
 
-
 @pytest.fixture(scope="session", autouse=True)
 async def init_test_db():
-    """
-    Create (and later drop) test DB schema once per test session.
-    Uses engine.run_sync to execute synchronous metadata.create_all.
-    """
-    # ensure old file removed
     try:
         if os.path.exists(_TMP_DB):
             os.remove(_TMP_DB)
@@ -67,17 +60,11 @@ async def override_get_db():
 
 # override current-user dependency to return a fixed test user id
 async def override_get_current_user():
-    # adjust if your get_current_user returns a model or id;
-    # the earlier code expected token: int (user_id), so return an integer user id
     return 1
 
 
 @pytest.fixture(autouse=True)
 def override_dependencies():
-    """
-    Automatically override app dependencies for every test.
-    Tests may choose to change overrides if needed.
-    """
     fastapi_app.dependency_overrides[get_db] = override_get_db
     fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
     yield
@@ -86,9 +73,19 @@ def override_dependencies():
 
 @pytest.fixture
 async def client():
-    """
-    Async httpx client using ASGI transport so requests run in-process.
-    """
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+@pytest.fixture
+def clear_overrides():
+    """
+    Temporarily clear FastAPI dependency overrides so tests use the REAL
+    authentication flow instead of the test overrides (fake DB user, fake token).
+    After the test, restore the overrides to avoid affecting other tests.
+    """
+    orig = fastapi_app.dependency_overrides.copy()
+    fastapi_app.dependency_overrides.clear()
+    yield
+    fastapi_app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.update(orig)

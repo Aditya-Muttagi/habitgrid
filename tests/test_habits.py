@@ -1,8 +1,6 @@
-# tests/test_habits.py
 import pytest
 from httpx import AsyncClient
 
-# adjust imports if needed to access models for assertions
 from app.models.habit import Habit, HabitEntry
 from sqlalchemy.ext.asyncio import AsyncSession
 
