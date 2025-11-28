@@ -77,15 +77,23 @@ async def client():
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
+# replace current clear_overrides fixture with this
 @pytest.fixture
 def clear_overrides():
     """
-    Temporarily clear FastAPI dependency overrides so tests use the REAL
-    authentication flow instead of the test overrides (fake DB user, fake token).
-    After the test, restore the overrides to avoid affecting other tests.
+    Clear only auth-related overrides (so we use real authentication flow)
+    but retain the DB override so endpoints still use the test DB.
     """
     orig = fastapi_app.dependency_overrides.copy()
+    # Keep DB override if present
+    db_override = orig.get(get_db)
+    # Clear all overrides then restore only the DB override
     fastapi_app.dependency_overrides.clear()
+    if db_override is not None:
+        fastapi_app.dependency_overrides[get_db] = db_override
+
     yield
+
+    # restore everything to original
     fastapi_app.dependency_overrides.clear()
     fastapi_app.dependency_overrides.update(orig)
