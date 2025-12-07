@@ -5,7 +5,10 @@ from app.api.v1 import auth, habits
 from fastapi.staticfiles import StaticFiles
 
 #Starts the App
-app = FastAPI(title="HabitGrid")
+app = FastAPI(
+    title="HabitGrid",
+    swagger_ui_favicon_url="/favicon.png",  # use the same favicon for /docs
+)
 
 #Add all these endpoints into main.py
 app.include_router(auth.router)
